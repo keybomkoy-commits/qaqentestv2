@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QAQEN QC</title>
+    <link rel="icon" id="siteFavicon" href="">
+    
+    <!-- นำเข้าฟอนต์ -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* เลเยอร์พื้นหลังสำหรับทำอนิเมชันซูม */
+        #bg-image {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 0;
+            animation: bgZoom 30s linear infinite alternate;
+        }
+
+        @keyframes bgZoom {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.15); }
+        }
+
+        /* เลเยอร์สีดำดรอปความเด่นของพื้นหลัง */
+        .bg-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(
+                to bottom,
+                rgba(5, 5, 5, 0.7) 0%,
+                rgba(5, 5, 5, 0.5) 40%,
+                rgba(5, 5, 5, 0.6) 70%,
+                rgba(5, 5, 5, 0.9) 100%
+            );
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* เลเยอร์ Canvas สำหรับฝุ่นดาว */
+        #particleCanvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .main-content {
+            position: relative;
+            z-index: 3; /* ให้อยู่เหนือพื้นหลังและ Canvas */
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            gap: 30px; 
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .main-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(3rem, 6vw, 5.5rem);
+            letter-spacing: 0.25em;
+            margin: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-right: -0.25em;
+            animation: textGlow 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes textGlow {
+            0% { text-shadow: 0 4px 20px rgba(255, 255, 255, 0.05); }
+            100% { text-shadow: 0 4px 40px rgba(255, 255, 255, 0.35), 0 0 15px rgba(255,255,255,0.1); }
+        }
+
+        .sub-title {
+            font-size: 0.75rem;
+            margin-top: 15px;
+            color: #888888;
+            text-transform: uppercase;
+            animation: letterBreathe 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes letterBreathe {
+            0% { letter-spacing: 0.4em; opacity: 0.6; margin-right: -0.4em; }
+            100% { letter-spacing: 0.6em; opacity: 1; margin-right: -0.6em; }
+        }
+
+        .glass-box-container {
+            animation: floating 7s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+
+        .glass-box {
+            background: rgba(20, 20, 20, 0.25);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            width: 100vw;
+            max-width: 650px;
+            aspect-ratio: 21/9;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.5s ease;
+        }
+        
+        .glass-box:hover {
+            background: rgba(30, 30, 30, 0.35);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .main-logo {
+            max-height: 120px;
+            max-width: 80%;
+            object-fit: contain;
+            display: none; 
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s ease;
+            filter: drop-shadow(0 5px 15px rgba(255,255,255,0.1));
+        }
+        
+        .glass-box:hover .main-logo {
+            transform: scale(1.05);
+            filter: drop-shadow(0 8px 25px rgba(255,255,255,0.3));
+        }
+
+        .button-container {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            text-decoration: none;
+            flex: 1;
+            min-width: 130px;
+            max-width: 180px;
+            padding: 20px 10px;
+            background: rgba(10, 10, 10, 0.15); /* ดรอปปุ่มข้าง */
+            border: 1px solid rgba(255, 255, 255, 0.01);
+            border-radius: 8px;
+            color: #555555;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-sub {
+            font-size: 0.5rem;
+            color: #333333;
+            letter-spacing: 0.25em;
+            margin-top: 6px;
+            font-weight: 400;
+            transition: color 0.5s ease;
+        }
+
+        .btn:hover {
+            background: rgba(30, 30, 30, 0.6);
+            border-color: rgba(255, 255, 255, 0.08);
+            color: #999999;
+            transform: translateY(-4px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        }
+        
+        .btn:hover .btn-sub { color: #666666; }
+
+        /* ปุ่มหลักตรงกลาง (เด่นสุด) */
+        .btn-main {
+            background: rgba(25, 25, 25, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            max-width: 200px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 10px rgba(255,255,255,0.05);
+            transform: scale(1.05); /* ใหญ่กว่าปุ่มอื่น */
+            z-index: 10;
+        }
+        
+        .btn-main .btn-sub { color: #aaaaaa; }
+
+        .btn-main:hover {
+            background: rgba(45, 45, 45, 0.95);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: #ffffff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7), 0 0 20px rgba(255,255,255,0.3);
+            transform: scale(1.08) translateY(-4px);
+        }
+        .btn-main:hover .btn-sub { color: #cccccc; }
+
+        /* ปุ่มติดต่อทำเว็บ (เล็กๆ ด้านล่าง) */
+        .btn-contact {
+            margin-top: -10px; /* ขยับขึ้นไปชิดกลุ่มปุ่มหลัก */
+            padding: 8px 20px;
+            background: rgba(10, 10, 10, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            color: #777;
+            font-size: 0.65rem;
+            text-decoration: none;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-contact:hover {
+            background: rgba(40, 40, 40, 0.8);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+
+        /* เครดิตล่างสุด */
+        .footer-credit {
+            position: relative;
+            z-index: 3;
+            width: 100%;
+            text-align: center;
+            padding: 15px 0 20px;
+            font-size: 0.55rem;
+            color: #333;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            font-weight: 300;
+            border-top: 1px solid rgba(255, 255, 255, 0.02);
+            margin-top: auto; 
+        }
+
+        /* Widget เครื่องเล่นเพลง */
+        .music-widget {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(10, 10, 10, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            width: 250px;
+            z-index: 50;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+        
+        .music-widget:hover {
+            background: rgba(15, 15, 15, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .music-widget.collapsed { height: 60px; }
+        .music-widget.expanded { height: 110px; }
+
+        .music-header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            height: 60px;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .music-cover {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%; 
+            object-fit: cover;
+            margin-right: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: spinRecord 4s linear infinite;
+            animation-play-state: paused;
+        }
+        .playing .music-cover { animation-play-state: running; }
+        @keyframes spinRecord { 100% { transform: rotate(360deg); } }
+
+        .music-info-mini { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .music-label { font-size: 0.45rem; color: #777; letter-spacing: 0.2em; }
+        .music-title {
+            font-family: 'Oswald', sans-serif; font-size: 0.8rem; font-weight: 500;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: #ddd; margin-top: 2px;
+        }
+        .music-link {
+            font-size: 0.5rem; color: #555; text-decoration: none;
+            letter-spacing: 0.1em; margin-top: 2px; transition: color 0.3s;
+        }
+        .music-link:hover { color: #fff; }
+        .toggle-icon { font-size: 0.6rem; color: #888; padding: 5px; transition: transform 0.4s; }
+
+        .music-controls {
+            display: flex; align-items: center; padding: 0 15px 15px 15px; gap: 15px;
+            opacity: 0; transition: opacity 0.4s 0.1s;
+        }
+        .music-widget.expanded .music-controls { opacity: 1; }
+
+        .ctrl-btn {
+            background: none; border: none; color: #ddd; cursor: pointer;
+            font-size: 1.2rem; padding: 0; transition: color 0.3s, transform 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ctrl-btn:hover { color: #fff; transform: scale(1.1); }
+
+        .vol-slider {
+            flex: 1; -webkit-appearance: none; height: 3px;
+            background: rgba(255,255,255,0.2); border-radius: 2px; outline: none; cursor: pointer;
+        }
+        .vol-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 10px; height: 10px;
+            border-radius: 50%; background: #fff; cursor: pointer;
+        }
+
+        /* อนิเมชันเปิดตัวแบบ Fade Up */
+        @keyframes fadeUpIn {
+            0% { opacity: 0; transform: translateY(30px); filter: blur(5px); }
+            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        .anim-item {
+            opacity: 0;
+            animation: fadeUpIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.3s; }
+        .delay-3 { animation-delay: 0.5s; }
+        .delay-4 { animation-delay: 0.7s; } /* สำหรับปุ่มติดต่อ */
+        
+        @media (max-width: 850px) {
+            .button-container { flex-direction: column; align-items: center; gap: 10px; }
+            .btn { width: 100%; max-width: 300px; padding: 18px 10px; }
+            .btn-main { max-width: 320px; transform: scale(1); }
+            .btn-main:hover { transform: scale(1.02); }
+            .glass-box { aspect-ratio: auto; min-height: 160px; max-width: 90%; }
+            .music-widget { bottom: 15px; right: 15px; width: 220px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- พื้นหลัง รูป และ Canvas ฝุ่นดาว -->
+    <div id="bg-image"></div>
+    <div class="bg-overlay"></div>
+    <canvas id="particleCanvas"></canvas>
+
+    <main class="main-content">
+        <!-- ส่วนหัว (Title) -->
+        <header class="header-section anim-item delay-1">
+            <h1 id="dynMainTitle" class="main-title">loading...</h1>
+            <p id="dynSubTitle" class="sub-title"> </p>
+        </header>
+
+        <!-- กล่องกระจกใส่ Logo -->
+        <div class="glass-box-container anim-item delay-2">
+            <div class="glass-box">
+                <img id="mainLogo" src="" alt="Main Logo" class="main-logo">
+            </div>
+        </div>
+        
+        <!-- ส่วน 5 ปุ่ม -->
+        <nav class="button-container anim-item delay-3">
+            <a href="#" id="btnFarLeft" class="btn" target="_blank">
+                <span id="txtFarLeft">PARTNER</span>
+                <span class="btn-sub">MEMBER ZONE</span>
+            </a>
+            <a href="#" id="btnLeft" class="btn" target="_blank">
+                <span id="txtLeft">PARTNER</span>
+                <span class="btn-sub">MEMBER ZONE</span>
+            </a>
+            <a href="member.html" id="btnMid" class="btn btn-main">
+                <span id="txtMid">MEMBER</span>
+                <span class="btn-sub">EXCLUSIVE</span>
+            </a>
+            <a href="#" id="btnRight" class="btn" target="_blank">
+                <span id="txtRight">PARTNER</span>
+                <span class="btn-sub">MEMBER ZONE</span>
+            </a>
+            <a href="#" id="btnFarRight" class="btn" target="_blank">
+                <span id="txtFarRight">PARTNER</span>
+                <span class="btn-sub">MEMBER ZONE</span>
+            </a>
+        </nav>
+
+        <!-- ปุ่มติดต่อทำเว็บ (เล็กๆ แต่อยู่ใต้กลุ่มปุ่ม) -->
+        <a href="https://qaqenqcstudio.vercel.app/" target="_blank" class="btn-contact anim-item delay-4">
+            <span style="font-size: 1rem;">💬</span> ติดต่อทำเว็บ
+        </a>
+    </main>
+
+    <!-- เครื่องเล่นเพลง -->
+    <div id="musicWidget" class="music-widget collapsed anim-item delay-3">
+        <div class="music-header" id="toggleMusicBtn">
+            <img id="musicCover" class="music-cover" src="https://placehold.co/100x100/111/444?text=🎵" alt="Cover">
+            <div class="music-info-mini">
+                <span class="music-label">NOW PLAYING</span>
+                <div id="musicTitle" class="music-title">Unknown Track</div>
+                <a id="musicLink" class="music-link" href="#" target="_blank">Original Source</a>
+            </div>
+            <div id="toggleIcon" class="toggle-icon">▼</div>
+        </div>
+        <div class="music-controls">
+            <button id="playPauseBtn" class="ctrl-btn">▶</button>
+            <input type="range" id="volumeSlider" class="vol-slider" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <audio id="bgMusic" loop>
+            <source src="music.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+
+    <!-- ส่วนเครดิตที่แก้ไม่ได้ -->
+    <footer class="footer-credit">
+        SYSTEM DESIGN BY QA QEN
+        <span style="opacity: 0.3; margin: 0 10px;">|</span> 
+        <a href="admin.html" style="color: #666; text-decoration: none; transition: 0.3s; font-weight: 500;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#666'">ADMIN</a>
+    </footer>
+
+    <script>
+        // ระบบอนิเมชัน Particle (ฝุ่นดาว) บน Canvas
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let particlesArray = [];
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() * -0.5) - 0.1; // ลอยขึ้นบนเสมอ
+                this.opacity = Math.random() * 0.5;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.y < 0) {
+                    this.y = canvas.height;
+                    this.x = Math.random() * canvas.width;
+                }
+            }
+            draw() {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particlesArray = [];
+            let numberOfParticles = (canvas.width * canvas.height) / 8000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                particlesArray.push(new Particle());
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+                particlesArray[i].draw();
+            }
+            requestAnimationFrame(animateParticles);
+        }
+
+        initParticles();
+        animateParticles();
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ⚠️ นำ Config จาก Firebase ของคุณมาใส่ตรงนี้
+        const firebaseConfig = {
+            apiKey: "AIzaSyATaBrpXaDrhjs4Z_TTiz-eIqtXm19-A8k",
+            authDomain: "qaqenv2test.firebaseapp.com",
+            projectId: "qaqenv2test",
+            storageBucket: "qaqenv2test.firebasestorage.app",
+            messagingSenderId: "961212832644",
+            appId: "1:961212832644:web:37012c074b1d6c33029bd1",
+        };
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            const elements = {
+                txtFarLeft: document.getElementById('txtFarLeft'), txtLeft: document.getElementById('txtLeft'),
+                txtMid: document.getElementById('txtMid'), txtRight: document.getElementById('txtRight'),
+                txtFarRight: document.getElementById('txtFarRight'), btnFarLeft: document.getElementById('btnFarLeft'),
+                btnLeft: document.getElementById('btnLeft'), btnMid: document.getElementById('btnMid'),
+                btnRight: document.getElementById('btnRight'), btnFarRight: document.getElementById('btnFarRight'),
+                mainLogo: document.getElementById('mainLogo'), musicTitle: document.getElementById('musicTitle'),
+                musicLink: document.getElementById('musicLink'), musicCover: document.getElementById('musicCover'),
+                dynMainTitle: document.getElementById('dynMainTitle'), dynSubTitle: document.getElementById('dynSubTitle')
+            };
+
+            // ระบบ Music แบบต่อเนื่องและเล่นเมื่อคลิก
+            const audio = document.getElementById('bgMusic');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const volumeSlider = document.getElementById('volumeSlider');
+            const musicWidget = document.getElementById('musicWidget');
+            const toggleMusicBtn = document.getElementById('toggleMusicBtn');
+            const toggleIcon = document.getElementById('toggleIcon');
+            let isPlaying = false; audio.volume = 0.5;
+
+            // ตรวจสอบสถานะเพลงจากหน้าก่อนหน้า
+            const savedTime = sessionStorage.getItem('musicCurrentTime');
+            const wasPlaying = sessionStorage.getItem('musicIsPlaying');
+            
+            if (savedTime) audio.currentTime = parseFloat(savedTime);
+            
+            if (wasPlaying === 'true') {
+                audio.play().then(() => { 
+                    playPauseBtn.innerHTML = '⏸'; 
+                    musicWidget.classList.add('playing'); 
+                    isPlaying = true; 
+                }).catch(e => { console.log("เบราว์เซอร์บล็อค Autoplay ต้องรอให้คลิกก่อน"); });
+            }
+
+            // บันทึกสถานะก่อนเปลี่ยนหน้า
+            window.addEventListener('beforeunload', () => {
+                sessionStorage.setItem('musicCurrentTime', audio.currentTime);
+                sessionStorage.setItem('musicIsPlaying', isPlaying);
+            });
+
+            // กดที่ไหนก็ได้ในเว็บเพื่อเล่นเพลง (ถ้ายังไม่เล่น)
+            document.body.addEventListener('click', (e) => {
+                // ข้ามถ้ากดปุ่มเล่นเพลงโดยตรง เพื่อไม่ให้โค้ดทำงานทับซ้อนกัน
+                if (!isPlaying && !e.target.closest('#playPauseBtn') && !e.target.closest('.vol-slider')) {
+                    audio.play().then(() => {
+                        playPauseBtn.innerHTML = '⏸';
+                        musicWidget.classList.add('playing');
+                        isPlaying = true;
+                        sessionStorage.setItem('musicIsPlaying', 'true');
+                    }).catch(e=>{});
+                }
+            });
+
+            playPauseBtn.addEventListener('click', () => {
+                if (isPlaying) { 
+                    audio.pause(); playPauseBtn.innerHTML = '▶'; musicWidget.classList.remove('playing'); 
+                    sessionStorage.setItem('musicIsPlaying', 'false');
+                }
+                else { 
+                    audio.play().then(() => { 
+                        playPauseBtn.innerHTML = '⏸'; musicWidget.classList.add('playing'); 
+                        sessionStorage.setItem('musicIsPlaying', 'true');
+                    }).catch(e=>{}); 
+                }
+                isPlaying = !isPlaying;
+            });
+            volumeSlider.addEventListener('input', (e) => { audio.volume = e.target.value; });
+            toggleMusicBtn.addEventListener('click', (e) => {
+                if(e.target.tagName.toLowerCase() === 'a') return;
+                if (musicWidget.classList.contains('collapsed')) {
+                    musicWidget.classList.replace('collapsed', 'expanded'); toggleIcon.style.transform = 'rotate(180deg)';
+                } else {
+                    musicWidget.classList.replace('expanded', 'collapsed'); toggleIcon.style.transform = 'rotate(0deg)';
+                }
+            });
+
+            // ดึงข้อมูล Realtime จาก Firebase
+            onSnapshot(doc(db, "settings", "homepage"), (docSnap) => {
+                if (docSnap.exists()) {
+                    const config = docSnap.data();
+                    
+                    // อัปเดตพื้นหลังไปที่ div #bg-image
+                    if (config.bgUrl) { document.getElementById('bg-image').style.backgroundImage = `url('${config.bgUrl}')`; }
+                    if (config.faviconUrl) {
+                        const favEl = document.getElementById('siteFavicon');
+                        if (favEl) favEl.href = config.faviconUrl;
+                    }
+                    
+                    if (config.mainTitle) elements.dynMainTitle.innerText = config.mainTitle;
+                    if (config.subTitle) elements.dynSubTitle.innerText = config.subTitle;
+
+                    if (config.logoUrl) { elements.mainLogo.src = config.logoUrl; elements.mainLogo.style.display = 'block'; }
+                    else { elements.mainLogo.style.display = 'none'; }
+
+                    if(config.farLeftBtnText) elements.txtFarLeft.innerText = config.farLeftBtnText;
+                    if(config.leftBtnText) elements.txtLeft.innerText = config.leftBtnText;
+                    if(config.rightBtnText) elements.txtRight.innerText = config.rightBtnText;
+                    if(config.farRightBtnText) elements.txtFarRight.innerText = config.farRightBtnText;
+
+                    if(config.farLeftBtnUrl) elements.btnFarLeft.href = config.farLeftBtnUrl;
+                    if(config.leftBtnUrl) elements.btnLeft.href = config.leftBtnUrl;
+                    if(config.rightBtnUrl) elements.btnRight.href = config.rightBtnUrl;
+                    if(config.farRightBtnUrl) elements.btnFarRight.href = config.farRightBtnUrl;
+                    
+                    if(config.musicTitle) elements.musicTitle.innerText = config.musicTitle;
+                    if(config.musicLinkText) elements.musicLink.innerText = config.musicLinkText;
+                    if(config.musicLinkUrl) elements.musicLink.href = config.musicLinkUrl;
+                    if(config.musicCoverUrl) elements.musicCover.src = config.musicCoverUrl;
+                }
+            }, (error) => { console.warn("รอการเชื่อมต่อ Firebase"); });
+        } catch (error) { console.error("Firebase Error:", error); }
+    </script>
+</body>
+</html>
